@@ -8,6 +8,13 @@ plugins {
 group = 'com.algaworks.algasensors'
 version = '0.0.1-SNAPSHOT'
 
+idea {
+	module {
+		downloadJavadoc = true
+		downloadSources = true
+	}
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
