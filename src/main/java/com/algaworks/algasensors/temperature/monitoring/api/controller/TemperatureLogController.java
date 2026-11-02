@@ -1,6 +1,6 @@
 package com.algaworks.algasensors.temperature.monitoring.api.controller;
 
-import com.algaworks.algasensors.temperature.monitoring.api.model.TemperatureLogOutput;
+import com.algaworks.algasensors.temperature.monitoring.api.model.TemperatureLogData;
 import com.algaworks.algasensors.temperature.monitoring.domain.model.SensorId;
 import com.algaworks.algasensors.temperature.monitoring.domain.model.TemperatureLog;
 import com.algaworks.algasensors.temperature.monitoring.domain.repository.TemperatureLogRepository;
@@ -15,25 +15,40 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/sensors/{sensorId}/temperatures")
+@RequestMapping("/api/sensors")
 @RequiredArgsConstructor
 public class TemperatureLogController {
     
     private final TemperatureLogRepository temperatureLogRepository;
 
-    @GetMapping
-    public Page<TemperatureLogOutput> search(@PathVariable TSID sensorId,
-                                             @PageableDefault Pageable pageable) {
+    @GetMapping("/temperatures")
+    public Page<TemperatureLogData> search(@PageableDefault Pageable pageable) {
+        Page<TemperatureLog> temperatureLogs = temperatureLogRepository.findAll(pageable);
+        return temperatureLogs.map(this::convertToModel);
+    }
+
+    @GetMapping("/{sensorId}/temperatures")
+    public Page<TemperatureLogData> search(@PathVariable TSID sensorId,
+                                           @PageableDefault Pageable pageable) {
         Page<TemperatureLog> temperatureLogs = temperatureLogRepository.findAllBySensorId(
                 new SensorId(sensorId), pageable);
 
         return temperatureLogs.map(temperatureLog ->
-                TemperatureLogOutput.builder()
+                TemperatureLogData.builder()
                         .id(temperatureLog.getId().getValue())
                         .value(temperatureLog.getValue())
                         .registeredAt(temperatureLog.getRegisteredAt())
                         .sensorId(temperatureLog.getSensorId().getValue())
                         .build());
+    }
+
+    private TemperatureLogData convertToModel(TemperatureLog temperatureLog) {
+        return TemperatureLogData.builder()
+                .id(temperatureLog.getId().getValue())
+                .value(temperatureLog.getValue())
+                .registeredAt(temperatureLog.getRegisteredAt())
+                .sensorId(temperatureLog.getSensorId().getValue())
+                .build();
     }
 
 }

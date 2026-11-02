@@ -6,17 +6,53 @@ import com.algaworks.algasensors.temperature.monitoring.domain.model.SensorMonit
 import com.algaworks.algasensors.temperature.monitoring.domain.repository.SensorMonitoringRepository;
 import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
 
 @RestController
-@RequestMapping("/api/sensors/{sensorId}/monitoring")
+@RequestMapping("/api/sensors")
 @RequiredArgsConstructor
 public class SensorMonitoringController {
 
     private final SensorMonitoringRepository sensorMonitoringRepository;
 
-    @GetMapping
+    @GetMapping("/monitoring")
+    public Page<SensorMonitoringOuput> search(@PageableDefault Pageable pageable) {
+        Page<SensorMonitoring> sensors = sensorMonitoringRepository.findAll(pageable);
+        return sensors.map(this::convertToModel);
+    }
+
+    @PutMapping("/{sensorId}/monitoring/enable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void enable(@PathVariable TSID sensorId) {
+        SensorMonitoring sensorMonitoring = findByIdOrDefault(sensorId);
+        if (sensorMonitoring.getEnabled()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        sensorMonitoring.setEnabled(true);
+        sensorMonitoringRepository.saveAndFlush(sensorMonitoring);
+    }
+
+    @DeleteMapping("/{sensorId}/monitoring/enable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SneakyThrows
+    public void disable(@PathVariable TSID sensorId) {
+        SensorMonitoring sensorMonitoring = findByIdOrDefault(sensorId);
+        if (!sensorMonitoring.getEnabled()) {
+            Thread.sleep(Duration.ofSeconds(10));
+        }
+        sensorMonitoring.setEnabled(false);
+        sensorMonitoringRepository.saveAndFlush(sensorMonitoring);
+    }
+
+    @GetMapping("/{sensorId}/monitoring")
     public SensorMonitoringOuput getDetail(@PathVariable TSID sensorId) {
         SensorMonitoring sensorMonitoring = findByIdOrDefault(sensorId);
 
@@ -38,20 +74,12 @@ public class SensorMonitoringController {
                         .build());
     }
 
-    @PutMapping("/enable")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void enable(@PathVariable TSID sensorId) {
-        SensorMonitoring sensorMonitoring = findByIdOrDefault(sensorId);
-        sensorMonitoring.setEnabled(true);
-        sensorMonitoringRepository.saveAndFlush(sensorMonitoring);
+    private SensorMonitoringOuput convertToModel(SensorMonitoring sensor) {
+        return SensorMonitoringOuput.builder()
+                .id(sensor.getId().getValue())
+                .lastTemperature(sensor.getLastTemperature())
+                .updatedAt(sensor.getUpdatedAt())
+                .enabled(sensor.getEnabled())
+                .build();
     }
-
-    @DeleteMapping("/enable")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void disable(@PathVariable TSID sensorId) {
-        SensorMonitoring sensorMonitoring = findByIdOrDefault(sensorId);
-        sensorMonitoring.setEnabled(false);
-        sensorMonitoringRepository.saveAndFlush(sensorMonitoring);
-    }
-
 }

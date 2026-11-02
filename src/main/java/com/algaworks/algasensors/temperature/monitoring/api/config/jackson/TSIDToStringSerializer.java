@@ -1,9 +1,9 @@
 package com.algaworks.algasensors.temperature.monitoring.api.config.jackson;
 
+import io.hypersistence.tsid.TSID;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueSerializer;
-import io.hypersistence.tsid.TSID;
 
 public class TSIDToStringSerializer extends ValueSerializer<TSID> {
 
