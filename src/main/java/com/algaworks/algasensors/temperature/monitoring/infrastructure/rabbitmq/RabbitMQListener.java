@@ -40,4 +40,18 @@ public class RabbitMQListener {
         Thread.sleep(Duration.ofSeconds(5));
     }
 
+    @RabbitListener(queues = QUEUE_SMS, concurrency = "2-3")
+    @SneakyThrows
+    public void handleSmsNotification(@Payload TemperatureLogData temperatureLogData) {
+        log.info("Sending SMS Notification: SensorId {} Temp {}", temperatureLogData.getSensorId(), temperatureLogData.getValue());
+        Thread.sleep(Duration.ofSeconds(5));
+    }
+
+    @RabbitListener(queues = QUEUE_EMAIL, concurrency = "2-3")
+    @SneakyThrows
+    public void handleEmailNotification(@Payload TemperatureLogData temperatureLogData) {
+        log.info("Sending Email Notification: SensorId {} Temp {}", temperatureLogData.getSensorId(), temperatureLogData.getValue());
+        Thread.sleep(Duration.ofSeconds(5));
+    }
+
 }

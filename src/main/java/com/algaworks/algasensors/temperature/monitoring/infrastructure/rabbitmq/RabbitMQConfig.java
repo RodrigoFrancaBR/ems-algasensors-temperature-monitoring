@@ -17,18 +17,13 @@ public class RabbitMQConfig {
 
     public static final String QUEUE_PROCESS_TEMPERATURE = "temperature-monitoring.process-temperature.v1.q";
     public static final String QUEUE_ALERTING = "temperature-monitoring.alerting.v1.q";
+    public static final String QUEUE_SMS = "temperature-monitoring.notification-sms.v1.q";
+    public static final String QUEUE_EMAIL = "temperature-monitoring.notification-email.v1.q";
+    public static final String FANOUT_EXCHANGE_NAME = "temperature-processing.temperature-received.v1.e";
+    public static final String DIRECT_EXCHANGE_NAME = "temperature-processing.notification.v1.e";
 
-    @Bean
-    public JacksonJsonMessageConverter jacksonJsonMessageConverter(
-            JsonMapper mapper
-    ) {
-        return new JacksonJsonMessageConverter( mapper);
-    }
-
-
-    @Bean
-    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
-        return new RabbitAdmin(connectionFactory);
+    public FanoutExchange exchange() {
+        return ExchangeBuilder.fanoutExchange(FANOUT_EXCHANGE_NAME).build();
     }
 
     @Bean
@@ -41,10 +36,6 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(QUEUE_ALERTING).build();
     }
 
-    public FanoutExchange exchange() {
-        return ExchangeBuilder.fanoutExchange("temperature-processing.temperature-received.v1.e").build();
-    }
-
     @Bean
     public Binding bindingProcessTemperature() {
         return BindingBuilder.bind(queueProcessTemperature()).to(exchange());
@@ -53,6 +44,47 @@ public class RabbitMQConfig {
     @Bean
     public Binding bindingAlerting() {
         return BindingBuilder.bind(queueAlerting()).to(exchange());
+    }
+
+    @Bean
+    public Queue queueSms() {
+        return QueueBuilder.durable(QUEUE_SMS).build();
+    }
+
+    @Bean
+    public Queue queueEmail() {
+        return QueueBuilder.durable(QUEUE_EMAIL).build();
+    }
+
+    @Bean
+    public DirectExchange notificationExchange() {
+        return ExchangeBuilder.directExchange(DIRECT_EXCHANGE_NAME).build();
+    }
+
+    @Bean
+    public Binding bindingSms() {
+        return BindingBuilder.bind(queueSms())
+                .to(notificationExchange())
+                .with("notification.sms");
+    }
+
+    @Bean
+    public Binding bindingEmail() {
+        return BindingBuilder.bind(queueEmail())
+                .to(notificationExchange())
+                .with("notification.email");
+    }
+
+    @Bean
+    public JacksonJsonMessageConverter jacksonJsonMessageConverter(
+            JsonMapper mapper
+    ) {
+        return new JacksonJsonMessageConverter( mapper);
+    }
+
+    @Bean
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+        return new RabbitAdmin(connectionFactory);
     }
 
 }
