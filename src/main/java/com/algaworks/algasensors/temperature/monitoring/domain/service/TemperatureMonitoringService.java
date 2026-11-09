@@ -23,7 +23,6 @@ public class TemperatureMonitoringService {
 
     @Transactional
     public void processTemperatureReading(TemperatureLogData temperatureLogData) {
-
         sensorMonitoringRepository.findById(new SensorId(temperatureLogData.getSensorId()))
                 .ifPresentOrElse(
                         sensor -> handleSensorMonitoring(temperatureLogData, sensor),
