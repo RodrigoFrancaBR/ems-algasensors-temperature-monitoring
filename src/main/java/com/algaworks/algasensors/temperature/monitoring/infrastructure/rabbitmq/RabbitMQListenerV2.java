@@ -6,10 +6,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static com.algaworks.algasensors.temperature.monitoring.infrastructure.rabbitmq.RabbitMQConfigV2.*;
 
@@ -35,6 +37,9 @@ public class RabbitMQListenerV2 {
     @RabbitListener(queues = QUEUE_MAINTENANCE, concurrency = "2-3")
     @SneakyThrows
     public void handleQueueMaintenance(@Payload TemperatureLogData temperatureLogData) {
+        if (temperatureLogData.getValue() != null) {
+            throw new RuntimeException("Test error");
+        }
         log.info("QUEUE: {} SensorId {} Temp {}", QUEUE_MAINTENANCE, temperatureLogData.getSensorId(), temperatureLogData.getValue());
         Thread.sleep(Duration.ofSeconds(5));
     }
@@ -55,11 +60,9 @@ public class RabbitMQListenerV2 {
 
     @RabbitListener(queues = QUEUE_CERTIFIED_METRICS, concurrency = "2-3")
     @SneakyThrows
-    public void handleQueueCertifiedMetrics(@Payload TemperatureLogData temperatureLogData) {
-        if(temperatureLogData.getValue()!=null){
-            throw new RuntimeException("Test error");
-        }
-        log.info("QUEUE: {} SensorId {} Temp {}",QUEUE_CERTIFIED_METRICS, temperatureLogData.getSensorId(), temperatureLogData.getValue());
+    public void handleQueueCertifiedMetrics(
+            @Payload TemperatureLogData temperatureLogData) {
+        log.info("QUEUE: {} SensorId {} Temp {}", QUEUE_CERTIFIED_METRICS, temperatureLogData.getSensorId(), temperatureLogData.getValue());
         Thread.sleep(Duration.ofSeconds(5));
     }
 }

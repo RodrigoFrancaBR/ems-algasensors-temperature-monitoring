@@ -40,12 +40,14 @@ public class RabbitMQConfigV2 {
 
     @Bean
     public Queue auditQueue() {
-        return new Queue(QUEUE_AUDIT, true); // true = Durable
+        return QueueBuilder.durable(QUEUE_AUDIT)
+                .build();
     }
 
     @Bean
     public Queue dashboardQueue() {
-        return new Queue(QUEUE_DASHBOARD, true);
+        return QueueBuilder.durable(QUEUE_DASHBOARD)
+                .build();
     }
 
     @Bean
@@ -62,6 +64,8 @@ public class RabbitMQConfigV2 {
     // --- 2. CONFIGURAÇÃO DA DIRECT (Manutenção Baseada em Severidade) ---
     public static final String DIRECT_EXCHANGE = "sensor.temperature.direct";
     public static final String QUEUE_MAINTENANCE = "sensor.maintenance.queue";
+    private static final String ROUTING_KEY_MAINTENANCE = "alerta.critico";
+    public static final String QUEUE_MAINTENANCE_DLQ = "sensor.maintenance.queue.dlq";
 
     @Bean
     public DirectExchange directExchange() {
@@ -70,20 +74,30 @@ public class RabbitMQConfigV2 {
 
     @Bean
     public Queue maintenanceQueue() {
-        return new Queue(QUEUE_MAINTENANCE, true);
+        return QueueBuilder.durable(QUEUE_MAINTENANCE)
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", QUEUE_MAINTENANCE_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue deadLetterQueueMaintenanceQueue() {
+        return QueueBuilder.durable(QUEUE_MAINTENANCE_DLQ).build();
     }
 
     @Bean
     public Binding bindMaintenance(Queue maintenanceQueue, DirectExchange directExchange) {
         // Vincula a fila apenas se a chave for exatamente "alerta.critico"
-        return BindingBuilder.bind(maintenanceQueue).to(directExchange).with("alerta.critico");
+        return BindingBuilder.bind(maintenanceQueue).to(directExchange).with(ROUTING_KEY_MAINTENANCE);
     }
 
 
     // --- 3. CONFIGURAÇÃO DA TOPIC (Filtros Regionais / Hierárquicos) ---
     public static final String TOPIC_EXCHANGE = "sensor.temperature.topic";
     public static final String QUEUE_REGIONAL_BR = "sensor.regional.brasil.queue";
+    private static final String ROUTING_KEY_REGIONAL_BR = "brasil.#";
     public static final String QUEUE_GLOBAL_ALERTS = "sensor.global.alerts.queue";
+    private static final String ROUTING_KEY_GLOBAL_ALERTS = "#.critico";
 
     @Bean
     public TopicExchange topicExchange() {
@@ -92,24 +106,24 @@ public class RabbitMQConfigV2 {
 
     @Bean
     public Queue regionalBrQueue() {
-        return new Queue(QUEUE_REGIONAL_BR, true);
+        return QueueBuilder.durable(QUEUE_REGIONAL_BR).build();
     }
 
     @Bean
     public Queue globalAlertsQueue() {
-        return new Queue(QUEUE_GLOBAL_ALERTS, true);
+        return QueueBuilder.durable(QUEUE_GLOBAL_ALERTS).build();
     }
 
     @Bean
     public Binding bindRegionalBr(Queue regionalBrQueue, TopicExchange topicExchange) {
         // Pega tudo que começa com "brasil" (ex: brasil.setorA.estavel)
-        return BindingBuilder.bind(regionalBrQueue).to(topicExchange).with("brasil.#");
+        return BindingBuilder.bind(regionalBrQueue).to(topicExchange).with(ROUTING_KEY_REGIONAL_BR);
     }
 
     @Bean
     public Binding bindGlobalAlerts(Queue globalAlertsQueue, TopicExchange topicExchange) {
         // Pega qualquer país, qualquer setor, desde que termine com "critico" (ex: *.# .critico)
-        return BindingBuilder.bind(globalAlertsQueue).to(topicExchange).with("#.critico");
+        return BindingBuilder.bind(globalAlertsQueue).to(topicExchange).with(ROUTING_KEY_GLOBAL_ALERTS);
     }
 
     // --- 4. CONFIGURAÇÃO DA HEADERS (Roteamento por Metadados no Cabeçalho) ---
@@ -123,7 +137,7 @@ public class RabbitMQConfigV2 {
 
     @Bean
     public Queue certifiedMetricsQueue() {
-        return new Queue(QUEUE_CERTIFIED_METRICS, true);
+        return QueueBuilder.durable(QUEUE_CERTIFIED_METRICS).build();
     }
 
     @Bean
